@@ -40,11 +40,6 @@ class Line:
         self.radius = curvature(self.fit)
         return self.radius
 
-    def get_intercepts(self):
-        bottom = self.fit[0] * 720 ** 2 + self.fit[1] * 720 + self.fit[2]
-        top = self.fit[2]
-        return bottom, top
-
     def quick_sliding_window(self, nonzerox, nonzeroy, image):
         """
         Assuming in last frame, lane has been detected. Based on last x/y coordinates, quick search current lane.
@@ -105,7 +100,7 @@ class Line:
                 win_top -= 90
                 win_bottom -= 90
         if np.sum(x_inds) > 0:
-            self.detected = False
+            self.detected = True
         else:
             y_inds = self.y
             x_inds = self.x
@@ -121,32 +116,56 @@ class Line:
 
         return sorted_x_inds, sorted_y_inds
 
+    def get_intercepts(self):
+        # Get lane intercept with image bottom
+        bottom = self.fit[0] * 720 ** 2 + self.fit[1] * 720 + self.fit[2]
+        # Get lane intercept with image top
+        top = self.fit[2]
+        return bottom, top
+
     def get_fit(self):
         """
         Based on searched x and y coordinates, polyfit with second order.
         Take median value in previous frames to smooth.
         """
+        # Find initial curve parameters
         self.fit = np.polyfit(self.y, self.x, 2)
 
+        # Get lane intercept with image boundaries
         self.current_bottom_x, self.current_top_x = self.get_intercepts()
 
+        # Append to accumulative deque bottom_x & top_x
         self.bottom_x.append(self.current_bottom_x)
         self.top_x.append(self.current_top_x)
+
+        # Set the current to median values of deque bottom_x & top_x
         self.current_bottom_x = np.median(self.bottom_x)
         self.current_top_x = np.median(self.top_x)
 
+        # Add lane intercept points to x & y points
         self.x = np.append(self.x, self.current_bottom_x)
         self.x = np.append(self.x, self.current_top_x)
         self.y = np.append(self.y, 720)
         self.y = np.append(self.y, 0)
 
+        # Sort
         self.x, self.y = self.sort_idx()
+
+        # Find intermediate curve parameters
         self.fit = np.polyfit(self.y, self.x, 2)
+
+        # Append to accumulative deque A, B, C
         self.A.append(self.fit[0])
         self.B.append(self.fit[1])
         self.C.append(self.fit[2])
+
+        # Set y values
         self.fity = self.y
+
+        # Find final curve parameters to median of accumulative deque A, B, C
         self.fit = [np.median(self.A), np.median(self.B), np.median(self.C)]
+
+        # Calculate corresponding x values
         self.fitx = self.fit[0] * self.fity ** 2 + self.fit[1] * self.fity + self.fit[2]
 
         return self.fit, self.fitx, self.fity
@@ -372,11 +391,11 @@ frame_num = 15
 left = Line()
 right = Line()
 
-video_output = './output_videos/challenge_video_out_debug.mp4'
+video_output = './output_videos/challenge_video_out_test.mp4'
 input_path = './test_videos/challenge_video.mp4'
 image_name = 'test1'
 
-
+'''
 
 image_r = process_image(mpimg.imread(f'./test_images/{image_name}.jpg'))
 f, (ax1) = plt.subplots(1, 1, figsize=(20, 10))
@@ -391,5 +410,5 @@ clip1 = VideoFileClip(input_path)
 final_clip = clip1.fl_image(process_image)
 final_clip.write_videofile(video_output, audio=False)
 
-'''
+
 
