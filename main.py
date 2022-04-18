@@ -6,7 +6,6 @@ import matplotlib.image as mpimg
 from moviepy.editor import VideoFileClip
 from collections import deque
 
-
 # Define a class to receive the characteristics of each line detection
 class Line:
     def __init__(self):
@@ -25,9 +24,6 @@ class Line:
         self.current_bottom_x = None
         self.current_top_x = None
 
-        # Record radius of curvature
-        self.radius = None
-
         # Polynomial coefficients: x = A*y**2 + B*y + C
         self.A = deque(maxlen=frame_num)
         self.B = deque(maxlen=frame_num)
@@ -36,36 +32,45 @@ class Line:
         self.fitx = None
         self.fity = None
 
-    def get_curv(self):
-        self.radius = curvature(self.fit)
-        return self.radius
-
     def quick_sliding_window(self, nonzerox, nonzeroy, image):
         """
         Assuming in last frame, lane has been detected. Based on last x/y coordinates, quick search current lane.
         """
         x_inds = []
         y_inds = []
+        # Form a 3D image
         out_img = np.dstack((image, image, image)) * 255
+        # Check if the previous frame was detected
         if self.detected:
+            # Set window top & bottom
             win_bottom = 720
             win_top = 630
+
+            # loop from bottom of image to top
             while win_top >= 0:
+                # Find the value of y (vertical center of the window)
                 yval = np.mean([win_top, win_bottom])
+                # Calculate the value of x (horizontal center of the window)
                 xval = (np.median(self.A)) * yval ** 2 + (np.median(self.B)) * yval + (np.median(self.C))
+                # Find non zero points in the range of the window
                 x_idx = np.where((((xval - 50) < nonzerox)
                                   & (nonzerox < (xval + 50))
                                   & ((nonzeroy > win_top) & (nonzeroy < win_bottom))))
                 x_window, y_window = nonzerox[x_idx], nonzeroy[x_idx]
+                # Draw window
                 cv2.rectangle(out_img, (int(xval - 50), win_top), (int(xval + 50), win_bottom),
                               (0, 255, 0), 2)
+                # Add to x_inds & y_inds if there are non zero points in the window
                 if np.sum(x_window) != 0:
                     np.append(x_inds, x_window)
                     np.append(y_inds, y_window)
+                # Move up in the image
                 win_top -= 90
                 win_bottom -= 90
+        # If there are no non zero points in all window then the quick search has failed
         if np.sum(x_inds) == 0:
-            self.detected = False  # If no lane pixels were detected then perform blind search
+            # If no lane pixels were detected then perform blind search
+            self.detected = False
         return x_inds, y_inds, out_img
 
     def blind_sliding_window(self, nonzerox, nonzeroy, image):
@@ -74,33 +79,50 @@ class Line:
         """
         x_inds = []
         y_inds = []
+        # Form a 3D image
         out_img = np.dstack((image, image, image)) * 255
+        # Check if the previous frame wasn't detected
         if self.detected is False:
+            # Set window top & bottom
             win_bottom = 720
             win_top = 630
+            # Find total histogram of the image
             histogram_complete = np.sum(image[200:, :], axis=0)
+            # loop from bottom of image to top
             while win_top >= 0:
+                # Find total histogram of the window
                 histogram = np.sum(image[win_top:win_bottom, :], axis=0)
+                # Check if it's the left or the right lane
                 if self == right:
+                    # Set the base of the window to the peak of the window histogram or image histogram if the first is
+                    # always zero
                     base = (np.argmax(histogram[640:-60]) + 640) \
                     if np.argmax(histogram[640:-60]) > 0\
                     else (np.argmax(histogram_complete[640:]) + 640)
                 else:
+                    # Set the base of the window to the peak of the window histogram or image histogram if the first is
+                    # always zero
                     base = np.argmax(histogram[:640]) \
                         if np.argmax(histogram[:640]) > 0 \
                         else np.argmax(histogram_complete[:640])
+                # Find non zero points in the range of the window
                 x_idx = np.where((((base - 50) < nonzerox) & (nonzerox < (base + 50))
                                   & ((nonzeroy > win_top) & (nonzeroy < win_bottom))))
                 x_window, y_window = nonzerox[x_idx], nonzeroy[x_idx]
+                # Draw window
                 cv2.rectangle(out_img, (int(base - 50), win_top), (int(base + 50), win_bottom),
                               (0, 255, 0), 2)
+                # Add to x_inds & y_inds if there are non zero points in the window
                 if np.sum(x_window) != 0:
                     x_inds.extend(x_window)
                     y_inds.extend(y_window)
+                # Move up in the image
                 win_top -= 90
                 win_bottom -= 90
+        # If there are non zero points in the windows then the blind search succeeded
         if np.sum(x_inds) > 0:
             self.detected = True
+        # Else return the points from the prvious frame
         else:
             y_inds = self.y
             x_inds = self.x
@@ -179,7 +201,6 @@ def draw_area(undist, left_fitx, lefty, right_fitx, righty):
     color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
 
     # Recast the x and y points into usable format for cv2.fillPoly()
-    # pts_left = np.array([np.transpose(np.vstack([left_fitx, lefty]))])
     pts_left = np.array([np.flipud(np.transpose(np.vstack([left_fitx, lefty])))])
 
     pts_right = np.array([np.transpose(np.vstack([right_fitx, righty]))])
@@ -188,35 +209,16 @@ def draw_area(undist, left_fitx, lefty, right_fitx, righty):
 
     # Draw lines
     cv2.polylines(color_warp, np.int_([pts]),
-                  isClosed=False, color=(200, 0, 0), thickness=30)
+                  isClosed=False, color=(255, 255, 0), thickness=30)
 
     # Draw the lane onto the warped blank image
-    cv2.fillPoly(color_warp, np.int_([pts]), (0, 255, 0))
+    cv2.fillPoly(color_warp, np.int_([pts]), (0, 150, 150))
 
     # Warp the blank back to original image space using inverse perspective matrix (Minv)
     newwarp = cv2.warpPerspective(color_warp, Minv, (img_shape[1], img_shape[0]))
 
     # Combine the result with the original image
-    return cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
-
-
-def curvature(fit):
-    """
-    calculate curvature from fit parameter
-    :param fit: [A, B, C]
-    :return: radius of curvature (in meters unit)
-    """
-    ym_per_pix = 18 / 720  # meters per pixel in y dimension
-    xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
-    fitx = fit[0] * ploty ** 2 + fit[1] * ploty + fit[2]
-    y_eval = np.max(ploty)
-    # Fit new polynomials to x,y in world space
-    fit_cr = np.polyfit(ploty * ym_per_pix, fitx * xm_per_pix, 2)
-
-    curverad = ((1 + (2 * fit_cr[0] * y_eval * ym_per_pix + fit_cr[1]) ** 2) ** 1.5) / \
-                    np.absolute(2 * fit_cr[0])
-
-    return curverad
+    return cv2.addWeighted(undist, 1, newwarp, 0.5, 0)
 
 
 def car_pos(left_fit, right_fit):
@@ -226,24 +228,40 @@ def car_pos(left_fit, right_fit):
     :param right_fit:
     :return: distance (meters) of car offset from the middle of left and right lane
     """
+    # Find lanes intersection with image bottom
     xleft_eval = left_fit[0] * np.max(ploty) ** 2 + left_fit[1] * np.max(ploty) + left_fit[2]
     xright_eval = right_fit[0] * np.max(ploty) ** 2 + right_fit[1] * np.max(ploty) + right_fit[2]
-    ym_per_pix = 18 / 720  # meters per pixel in y dimension
-    xm_per_pix = 3.7 / abs(xleft_eval - xright_eval)  # meters per pixel in x dimension
+
+    # Find mean value
     xmean = np.mean((xleft_eval, xright_eval))
-    offset = (img_shape[1]/2 - xmean) * xm_per_pix  # +: car in right; -: car in left side
+
+    # meters per pixel in y dimension
+    ym_per_pix = 18 / 720
+
+    # meters per pixel in x dimension
+    xm_per_pix = 3.7 / abs(xleft_eval - xright_eval)
+
+    # Find car offset from center (+: car in right; -: car in left side)
+    offset = (img_shape[1]/2 - xmean) * xm_per_pix
 
     y_eval = np.max(ploty)
+    # Find left Curvature
     left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
+    # Find left fit
     left_fit_cr = np.polyfit(ploty * ym_per_pix, left_fitx * xm_per_pix, 2)
+    # Calculate the left lane Curvature at the bottom of the image
     left_curverad = ((1 + (2 * left_fit_cr[0] * y_eval * ym_per_pix + left_fit_cr[1]) ** 2) ** 1.5) / \
                     np.absolute(2 * left_fit_cr[0])
 
+    # Find right Curvature
     right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
+    # Find right fit
     right_fit_cr = np.polyfit(ploty * ym_per_pix, right_fitx * xm_per_pix, 2)
+    # Calculate the right lane Curvature at the bottom of the image
     right_curverad = ((1 + (2 * right_fit_cr[0] * y_eval * ym_per_pix + right_fit_cr[1]) ** 2) ** 1.5) / \
                     np.absolute(2 * right_fit_cr[0])
 
+    #Find mean
     mean_curv = np.mean([left_curverad, right_curverad])
 
     return offset, mean_curv
@@ -258,7 +276,8 @@ def warp(img):
 
     # Compute and apply perspective transform
     M = cv2.getPerspectiveTransform(src, dst)
-    warped = cv2.warpPerspective(img, M, (1280, 720), flags=cv2.INTER_NEAREST)  # keep same size as input image
+    # keep same size as input image
+    warped = cv2.warpPerspective(img, M, (1280, 720), flags=cv2.INTER_NEAREST)
 
     return warped
 
@@ -395,7 +414,7 @@ video_output = './output_videos/challenge_video_out_test.mp4'
 input_path = './test_videos/challenge_video.mp4'
 image_name = 'test1'
 
-'''
+
 
 image_r = process_image(mpimg.imread(f'./test_images/{image_name}.jpg'))
 f, (ax1) = plt.subplots(1, 1, figsize=(20, 10))
@@ -410,5 +429,5 @@ clip1 = VideoFileClip(input_path)
 final_clip = clip1.fl_image(process_image)
 final_clip.write_videofile(video_output, audio=False)
 
-
+'''
 
