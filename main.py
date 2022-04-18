@@ -36,7 +36,14 @@ class Line:
         self.fitx = None
         self.fity = None
 
+    def get_curv(self):
+        self.radius = curvature(self.fit)
+        return self.radius
 
+    def get_intercepts(self):
+        bottom = self.fit[0] * 720 ** 2 + self.fit[1] * 720 + self.fit[2]
+        top = self.fit[2]
+        return bottom, top
 
     def quick_sliding_window(self, nonzerox, nonzeroy, image):
         """
@@ -104,6 +111,45 @@ class Line:
             x_inds = self.x
         return x_inds, y_inds, out_img
 
+    def sort_idx(self):
+        """
+        Sort x and y according to y index
+        """
+        sorted_idx = np.argsort(self.y)
+        sorted_x_inds = self.x[sorted_idx]
+        sorted_y_inds = self.y[sorted_idx]
+
+        return sorted_x_inds, sorted_y_inds
+
+    def get_fit(self):
+        """
+        Based on searched x and y coordinates, polyfit with second order.
+        Take median value in previous frames to smooth.
+        """
+        self.fit = np.polyfit(self.y, self.x, 2)
+
+        self.current_bottom_x, self.current_top_x = self.get_intercepts()
+
+        self.bottom_x.append(self.current_bottom_x)
+        self.top_x.append(self.current_top_x)
+        self.current_bottom_x = np.median(self.bottom_x)
+        self.current_top_x = np.median(self.top_x)
+
+        self.x = np.append(self.x, self.current_bottom_x)
+        self.x = np.append(self.x, self.current_top_x)
+        self.y = np.append(self.y, 720)
+        self.y = np.append(self.y, 0)
+
+        self.x, self.y = self.sort_idx()
+        self.fit = np.polyfit(self.y, self.x, 2)
+        self.A.append(self.fit[0])
+        self.B.append(self.fit[1])
+        self.C.append(self.fit[2])
+        self.fity = self.y
+        self.fit = [np.median(self.A), np.median(self.B), np.median(self.C)]
+        self.fitx = self.fit[0] * self.fity ** 2 + self.fit[1] * self.fity + self.fit[2]
+
+        return self.fit, self.fitx, self.fity
 
 
 def draw_area(undist, left_fitx, lefty, right_fitx, righty):
@@ -134,6 +180,54 @@ def draw_area(undist, left_fitx, lefty, right_fitx, righty):
     # Combine the result with the original image
     return cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
 
+
+def curvature(fit):
+    """
+    calculate curvature from fit parameter
+    :param fit: [A, B, C]
+    :return: radius of curvature (in meters unit)
+    """
+    ym_per_pix = 18 / 720  # meters per pixel in y dimension
+    xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
+    fitx = fit[0] * ploty ** 2 + fit[1] * ploty + fit[2]
+    y_eval = np.max(ploty)
+    # Fit new polynomials to x,y in world space
+    fit_cr = np.polyfit(ploty * ym_per_pix, fitx * xm_per_pix, 2)
+
+    curverad = ((1 + (2 * fit_cr[0] * y_eval * ym_per_pix + fit_cr[1]) ** 2) ** 1.5) / \
+                    np.absolute(2 * fit_cr[0])
+
+    return curverad
+
+
+def car_pos(left_fit, right_fit):
+    """
+    Calculate the position of car on left and right lane base (convert to real unit meter)
+    :param left_fit:
+    :param right_fit:
+    :return: distance (meters) of car offset from the middle of left and right lane
+    """
+    xleft_eval = left_fit[0] * np.max(ploty) ** 2 + left_fit[1] * np.max(ploty) + left_fit[2]
+    xright_eval = right_fit[0] * np.max(ploty) ** 2 + right_fit[1] * np.max(ploty) + right_fit[2]
+    ym_per_pix = 18 / 720  # meters per pixel in y dimension
+    xm_per_pix = 3.7 / abs(xleft_eval - xright_eval)  # meters per pixel in x dimension
+    xmean = np.mean((xleft_eval, xright_eval))
+    offset = (img_shape[1]/2 - xmean) * xm_per_pix  # +: car in right; -: car in left side
+
+    y_eval = np.max(ploty)
+    left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
+    left_fit_cr = np.polyfit(ploty * ym_per_pix, left_fitx * xm_per_pix, 2)
+    left_curverad = ((1 + (2 * left_fit_cr[0] * y_eval * ym_per_pix + left_fit_cr[1]) ** 2) ** 1.5) / \
+                    np.absolute(2 * left_fit_cr[0])
+
+    right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
+    right_fit_cr = np.polyfit(ploty * ym_per_pix, right_fitx * xm_per_pix, 2)
+    right_curverad = ((1 + (2 * right_fit_cr[0] * y_eval * ym_per_pix + right_fit_cr[1]) ** 2) ** 1.5) / \
+                    np.absolute(2 * right_fit_cr[0])
+
+    mean_curv = np.mean([left_curverad, right_curverad])
+
+    return offset, mean_curv
 
 
 def warp(img):
@@ -180,6 +274,25 @@ def undistort(img, mtx, dist):
     return cv2.cvtColor(dst_img, cv2.COLOR_BGR2RGB)
 
 
+def vconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
+    w_min = min(im.shape[1] for im in im_list)
+    im_list_resize = [cv2.resize(im, (w_min, int(im.shape[0] * w_min / im.shape[1])), interpolation=interpolation)
+                      for im in im_list]
+    return cv2.vconcat(im_list_resize)
+
+
+def hconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
+    h_min = min(im.shape[0] for im in im_list)
+    im_list_resize = [cv2.resize(im, (int(im.shape[1] * h_min / im.shape[0]), h_min), interpolation=interpolation)
+                      for im in im_list]
+    return cv2.hconcat(im_list_resize)
+
+
+def concat_tile_resize(im_list_2d, interpolation=cv2.INTER_CUBIC):
+    im_list_v = [hconcat_resize_min(im_list_h, interpolation=cv2.INTER_CUBIC) for im_list_h in im_list_2d]
+    return vconcat_resize_min(im_list_v, interpolation=cv2.INTER_CUBIC)
+
+
 def process_image(img):
 
     global mtx, dist, src, dst, debug
@@ -204,8 +317,37 @@ def process_image(img):
 
     out_combine = cv2.addWeighted(out_img_left, 1, out_img_right, 1, 0)
 
+    left.y = np.array(lefty).astype(np.float32)
+    left.x = np.array(leftx).astype(np.float32)
+    right.y = np.array(righty).astype(np.float32)
+    right.x = np.array(rightx).astype(np.float32)
 
-    return out_combine
+    left_fit, left_fitx, left_fity = left.get_fit()
+    right_fit, right_fitx, right_fity = right.get_fit()
+
+    offset, mean_curv = car_pos(left_fit, right_fit)
+
+    result = draw_area(undist_img, left_fitx, left_fity, right_fitx, right_fity)
+
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    text1 = 'Radius of Curvature: %d(m)'
+    text2 = 'Offset from center: %.2f(m)'
+    text3 = 'Radius of Curvature: Inf (m)'
+
+    if mean_curv < 3000:
+        cv2.putText(result, text1 % (int(mean_curv)),
+                                  (60, 100), font, 1.0, (255, 255, 255), thickness=2)
+    else:
+        cv2.putText(result, text3,
+                    (60, 100), font, 1.0, (255, 255, 255), thickness=2)
+    cv2.putText(result, text2 % (-offset),
+                              (60, 130), font, 1.0, (255, 255, 255), thickness=2)
+
+    if debug:
+        warped_binary_3D = np.dstack((warped_binary, warped_binary, warped_binary)) * 255
+        result = concat_tile_resize([[result], [undist_img, warped, warped_binary_3D, out_combine]])
+
+    return result
 
 img_shape = (720, 1280)
 img_size = [1280, 720]  # width, height
@@ -234,7 +376,7 @@ video_output = './output_videos/challenge_video_out_debug.mp4'
 input_path = './test_videos/challenge_video.mp4'
 image_name = 'test1'
 
-
+'''
 
 image_r = process_image(mpimg.imread(f'./test_images/{image_name}.jpg'))
 f, (ax1) = plt.subplots(1, 1, figsize=(20, 10))
@@ -249,5 +391,5 @@ clip1 = VideoFileClip(input_path)
 final_clip = clip1.fl_image(process_image)
 final_clip.write_videofile(video_output, audio=False)
 
-'''
+
 
