@@ -122,7 +122,7 @@ class Line:
         # If there are non zero points in the windows then the blind search succeeded
         if np.sum(x_inds) > 0:
             self.detected = True
-        # Else return the points from the prvious frame
+        # Else return the points of the previous frame
         else:
             y_inds = self.y
             x_inds = self.x
@@ -339,7 +339,7 @@ def process_image(img):
 
     warped = warp(img)
 
-    _, _, warped_binary = luv_lab_filter(warped, l_thresh=(215, 255),
+    l_bin, b_bin, warped_binary = luv_lab_filter(warped, l_thresh=(215, 255),
                                    b_thresh=(145, 200))
     nonzerox, nonzeroy = np.nonzero(np.transpose(warped_binary))
 
@@ -383,7 +383,10 @@ def process_image(img):
 
     if debug:
         warped_binary_3D = np.dstack((warped_binary, warped_binary, warped_binary)) * 255
-        result = concat_tile_resize([[result], [undist_img, warped, warped_binary_3D, out_combine]])
+        l_bin_3D = np.dstack((l_bin, l_bin, l_bin)) * 255
+        b_bin_3D = np.dstack((b_bin, b_bin, b_bin)) * 255
+        temp = vconcat_resize_min([undist_img, warped])
+        result = concat_tile_resize([[result, temp], [l_bin_3D, b_bin_3D, warped_binary_3D, out_combine]])
 
     return result
 
@@ -396,7 +399,7 @@ dst = np.float32([[0, 0], [1280, 0],
                   [1250, 720], [40, 720]])
 ploty = np.linspace(0, img_shape[0] - 1, img_shape[0])
 
-debug = True
+debug = False
 
 # import Camera Calibration Parameters
 dist_pickle = "./camera_cal_pickle.p"
@@ -410,11 +413,11 @@ frame_num = 15
 left = Line()
 right = Line()
 
-video_output = './output_videos/challenge_video_out_test.mp4'
-input_path = './test_videos/challenge_video.mp4'
+video_output = './output_videos/project_video_out.mp4'
+input_path = './test_videos/project_video.mp4'
 image_name = 'test1'
 
-
+'''
 
 image_r = process_image(mpimg.imread(f'./test_images/{image_name}.jpg'))
 f, (ax1) = plt.subplots(1, 1, figsize=(20, 10))
@@ -429,5 +432,5 @@ clip1 = VideoFileClip(input_path)
 final_clip = clip1.fl_image(process_image)
 final_clip.write_videofile(video_output, audio=False)
 
-'''
+
 
