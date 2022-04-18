@@ -376,7 +376,7 @@ video_output = './output_videos/challenge_video_out_debug.mp4'
 input_path = './test_videos/challenge_video.mp4'
 image_name = 'test1'
 
-'''
+
 
 image_r = process_image(mpimg.imread(f'./test_images/{image_name}.jpg'))
 f, (ax1) = plt.subplots(1, 1, figsize=(20, 10))
@@ -391,5 +391,5 @@ clip1 = VideoFileClip(input_path)
 final_clip = clip1.fl_image(process_image)
 final_clip.write_videofile(video_output, audio=False)
 
-
+'''
 
