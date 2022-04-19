@@ -390,6 +390,7 @@ def process_image(img):
 
     return result
 
+
 img_shape = (720, 1280)
 img_size = [1280, 720]  # width, height
 
@@ -398,8 +399,6 @@ src = np.float32([[490, 482], [810, 482],
 dst = np.float32([[0, 0], [1280, 0],
                   [1250, 720], [40, 720]])
 ploty = np.linspace(0, img_shape[0] - 1, img_shape[0])
-
-debug = False
 
 # import Camera Calibration Parameters
 dist_pickle = "./camera_cal_pickle.p"
@@ -413,24 +412,29 @@ frame_num = 15
 left = Line()
 right = Line()
 
-video_output = './output_videos/project_video_out.mp4'
-input_path = './test_videos/project_video.mp4'
-image_name = 'test1'
+#################################################################################
+#################################################################################
+video_output = './output_videos/project_video_out.mp4'                      ####
+input_path = './test_videos/project_video.mp4'                              ####
+debug = False                                                               ####
+image_name = 'test1'                                                        ####
+test_image = True                                                           ####
+test_video = False                                                          ####
+#################################################################################
+#################################################################################
 
-'''
+if test_image:
+    image_r = process_image(mpimg.imread(f'./test_images/{image_name}.jpg'))
+    f, (ax1) = plt.subplots(1, 1, figsize=(20, 10))
+    ax1.imshow(image_r)
+    ax1.set_title('Final Image', fontsize=30)
+    ax1.axis("off")
+    plt.show()
 
-image_r = process_image(mpimg.imread(f'./test_images/{image_name}.jpg'))
-f, (ax1) = plt.subplots(1, 1, figsize=(20, 10))
-ax1.imshow(image_r)
-ax1.set_title('Final Image', fontsize=30)
-ax1.axis("off")
-plt.show()
-
-'''
-
-clip1 = VideoFileClip(input_path)
-final_clip = clip1.fl_image(process_image)
-final_clip.write_videofile(video_output, audio=False)
+if test_video:
+    clip1 = VideoFileClip(input_path)
+    final_clip = clip1.fl_image(process_image)
+    final_clip.write_videofile(video_output, audio=False)
 
 
 
