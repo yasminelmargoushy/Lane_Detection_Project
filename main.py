@@ -23,25 +23,28 @@ def draw_area(undist, left_fitx, lefty, right_fitx, righty):
     pts = np.hstack((pts_left, pts_right))
 
     # Draw lines
+    '''
+    isClosed: Flag indicating whether the drawn polylines are closed or not. 
+    If they are closed, the function draws a line from the last vertex of each curve to its first
+    vertex.
+    pts: Array of polygonal curves.
+    '''
+
+    # Draw the outlines of the lane to fill it later with the green shape
     cv2.polylines(color_warp, np.int_([pts]),
                   isClosed=False, color=(200, 0, 0), thickness=30)
 
-    # Draw the lane onto the warped blank image
-    cv2.fillPoly(color_warp, np.int_([pts]), (0, 255, 0))
+    #   draw the green shape onto the warped image
+    cv2.fillPoly(color_warp, np.int_([pts]), (0, 0, 255))
 
-    # Warp the blank back to original image space using inverse perspective matrix (Minv)
-    newwarp = cv2.warpPerspective(color_warp, Minv, (img_shape[1], img_shape[0]))
+    # Warp the image back to original image space using inverse perspective matrix (Minv)
+    new_warped_image = cv2.warpPerspective(color_warp, Minv, (img_shape[1], img_shape[0]))
 
     # Combine the result with the original image
-    return cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
+    return cv2.addWeighted(undist, 1, new_warped_image, 0.3, 0)
 
 
 def warp(img):
-    """
-    Perspective Transformation
-    :param img:
-    :return: warped image
-    """
 
     # Compute and apply perspective transform
     M = cv2.getPerspectiveTransform(src, dst)
