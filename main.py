@@ -8,7 +8,7 @@ from moviepy.editor import VideoFileClip
 from collections import deque
 
 # Define a class to receive the characteristics of each line detection
-class Line:
+class Lane_line:
     def __init__(self):
         # was the line detected in the last iteration?
         self.detected = False
@@ -194,7 +194,7 @@ class Line:
         return self.fit, self.fitx, self.fity
 
 
-def draw_area(undist, left_fitx, lefty, right_fitx, righty):
+def draw(undist, left_fitx, lefty, right_fitx, righty):
     Minv = cv2.getPerspectiveTransform(dst, src)
 
     # Create an image to draw the lines on
@@ -231,12 +231,7 @@ def draw_area(undist, left_fitx, lefty, right_fitx, righty):
 
 
 def car_pos(left_fit, right_fit):
-    """
-    Calculate the position of car on left and right lane base (convert to real unit meter)
-    :param left_fit:
-    :param right_fit:
-    :return: distance (meters) of car offset from the middle of left and right lane
-    """
+
     # Find lanes intersection with image bottom
     xleft_eval = left_fit[0] * np.max(ploty) ** 2 + left_fit[1] * np.max(ploty) + left_fit[2]
     xright_eval = right_fit[0] * np.max(ploty) ** 2 + right_fit[1] * np.max(ploty) + right_fit[2]
@@ -302,13 +297,6 @@ def luv_lab_filter(img, l_thresh=(195, 255), b_thresh=(140, 200)):
 
 
 def undistort(img, mtx, dist):
-    """
-    Use cv2.undistort to undistort
-    :param img: Assuming input img is RGB (imread by mpimg)
-    :param mtx: camera calibration parameter
-    :param dist: camera calibration parameter
-    :return: Undistorted img
-    """
     # transform to BGR to fit cv2.imread
     img_BGR = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     dst_img = cv2.undistort(img_BGR, mtx, dist, None, mtx)
@@ -369,7 +357,7 @@ def process_image(img):
 
     offset, mean_curv = car_pos(left_fit, right_fit)
 
-    result = draw_area(undist_img, left_fitx, left_fity, right_fitx, right_fity)
+    result = draw(undist_img, left_fitx, left_fity, right_fitx, right_fity)
 
     font = cv2.FONT_HERSHEY_SIMPLEX
     text1 = 'Radius of Curvature: %d(m)'
@@ -413,17 +401,17 @@ mtx, dist = CalData["mtx"], CalData["dist"]
 # latest frames number of good detection
 frame_num = 15
 
-left = Line()
-right = Line()
+left = Lane_line()
+right = Lane_line()
 
 #################################################################################
 #################################################################################
 video_output =  sys.argv[1]                                                 #####
 input_path   =  sys.argv[2]                                                 #####
-debug        =  int(sys.arg[3])                                             #####
+debug        =  int(sys.argv[3])                                             #####
 image_name   = 'test1'                                                      #####
-test_image   = False                                                        #####
-test_video   = True                                                         #####
+test_image   = True                                                         #####
+test_video   = False                                                        #####
 #################################################################################
 #################################################################################
 
