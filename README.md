@@ -1,5 +1,4 @@
 # Lane_Detection_Project
-Lane Detection Project using Opencv & numpy
 ## Pipeline
     (1)   Undistort the Image(3D Image).
     (2)   Warp the Image(3D Image).
@@ -21,26 +20,26 @@ Lane Detection Project using Opencv & numpy
     (6)   Determine Lane Curvature
     (7)   Impose Lane Boundaries on Original Image
     (8)   Output Visual Display of Lane Boundaries and Numerical Estimation of Lane Curvature and Vehicle Position
-   ###(1)   Camera Calibration
+### (1)   Camera Calibration
     The first step in the project is camera calibrations which is done with the provided images in the camera_cal folder. 
     Using findChessboardCorners the corners are extracted and fed into the calibrateCamera function. 
     This function then provides us with our image matrix and the distortion coefficents.
-   ###(2)   Distortion Correction
+### (2)   Distortion Correction
     Using the image matrix, the distortion coefficents and the undistort function the images can be properly undistored.
-   ###(3)   Perspective Transform
+### (3)   Perspective Transform
     Transform before applying thresholds on the image.
     This was done with the getPerspectiveTransform and warpPerspective funtions.
-   ###(4)   Color and Gradient Threshold
+### (4)   Color and Gradient Threshold
     Using a combination of gradient threshold on the L-Channel in LUV color space & on the B-Channel in LAB color space, we obtained a 2D image filtered image.
-   ###(5)   Detect Lane Lines
+### (5)   Detect Lane Lines
     Lane lines were found by sliding a histogram window from the bottom of the to top.
     At each slice a point was indexed for were the highest density of pixels were found.
-   ###(6)   Determine Lane Curvature
+### (6)   Determine Lane Curvature
     Using the points gathered from the lane detection a 2nd order polynomial was fit to the data.
     With the new polynomial fit, new points were generated to simulate the entire length of the line.
-   ###(7)   Impose Lane Boundaries on Original Image
+### (7)   Impose Lane Boundaries on Original Image
     Lanes were imposed by taking the polynomial fit points and feeding them int opencv's poly fill to fill the polygon.  
-   ###(8)   Output Visual Display of Lane Boundaries and Numerical Estimation of Lane Curvature and Vehicle Position
+### (8)   Output Visual Display of Lane Boundaries and Numerical Estimation of Lane Curvature and Vehicle Position
     Distance from the center and the lane curvature were calculated from the bottom most pixels.
 ## libraries used
     (1)   cv2
