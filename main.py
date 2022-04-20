@@ -7,6 +7,7 @@ import matplotlib.image as mpimg
 from moviepy.editor import VideoFileClip
 from collections import deque
 
+
 # Define a class to receive the characteristics of each line detection
 class Lane_line:
     def __init__(self):
@@ -408,10 +409,10 @@ right = Lane_line()
 #################################################################################
 video_output =  sys.argv[1]                                                 #####
 input_path   =  sys.argv[2]                                                 #####
-debug        =  int(sys.argv[3])                                             #####
+debug        =  int(sys.argv[3])                                            #####
 image_name   = 'test1'                                                      #####
-test_image   = True                                                         #####
-test_video   = False                                                        #####
+test_image   = False                                                        #####
+test_video   = True                                                         #####
 #################################################################################
 #################################################################################
 
