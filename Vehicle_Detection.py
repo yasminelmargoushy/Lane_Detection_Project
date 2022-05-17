@@ -1,19 +1,17 @@
-import sys
 import os.path as path
 import glob
 import cv2 as cv2
 import numpy as np
 import pickle
-import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import random
+from itertools import chain
 from skimage.feature import hog
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 from scipy.ndimage import label
-from moviepy.editor import VideoFileClip
-from Common_Func import vconcat_resize_min, hconcat_resize_min, concat_tile_resize
+from Common_Func import vconcat_resize_min, hconcat_resize_min
 
 #Parameters
 orient = 9  # HOG orientations
@@ -73,7 +71,7 @@ def single_extract_features(image_orig, spatial_size, hist_bins, orient, cell_pe
 
     histogram_features=[]
     if hist_feat == True:
-        histogram_features = color_hist(image_YUV, hist_bins, hist_range)
+        histogram_features = color_hist(image_YUV, hist_bins)
 
     if hog_feat == True:
         local_features_1=get_hog_features(image_YUV[:,:,0], orient = orient,
@@ -227,12 +225,20 @@ def vehicle_detect_image(image):
 
     heat = np.zeros_like(img[:, :, 0]).astype(np.float)
     heat = add_heat(heat, refinedWindows)
+    print(refinedWindows)
 
     heat_image = np.clip(heat, 0, 255)
     heat_image = apply_threshold(heat, 2)
 
     labels = label(heat_image)
     draw_img = draw_labeled_bboxes(np.copy(image), labels)
+
+    if debug == 1:
+        heat_image = heat_image.astype(np.float64) / np.amax(heat_image)
+        heat_image = 255 * heat_image  # Now scale by 255
+        heat_image_3D = np.dstack((heat_image, heat_image, heat_image)).astype("uint8")
+        temp = vconcat_resize_min([image, ref_window_img, heat_image_3D])
+        draw_img = hconcat_resize_min([draw_img, temp])
 
     return ref_window_img, heat_image, draw_img
 
@@ -251,7 +257,41 @@ class KeepTrack():
 
 # Defining a pipeline for Video Frame Processing
 # The last 15 frames is kept
+random.seed(12345)
 def vehicle_detect(image):
+    rand = random.uniform(0.0, 1.0)
+    if (rand < 0.4):
+        refinedWindows = keepTrack.refinedWindows[:-1]
+    else:
+        refinedWindows = DrawCars(image, windows)
+        if len(refinedWindows) > 0:
+            keepTrack.AddWindows(refinedWindows)
+
+    heat = np.zeros_like(image[:, :, 0]).astype(np.float)
+    for refinedWindow in keepTrack.refinedWindows:
+        heat = add_heat(heat, refinedWindow)
+
+    heat_image = apply_threshold(heat, 21 + len(keepTrack.refinedWindows) // 2)
+    labels = label(heat_image)
+    draw_img = draw_labeled_bboxes(np.copy(image), labels)
+    if debug == 1:
+        if len(keepTrack.refinedWindows) > 1 and type(keepTrack.refinedWindows[0]) == list:
+            refinedWindows_flatten = list(chain.from_iterable(keepTrack.refinedWindows))
+            ref_window_img = draw_boxes(image, refinedWindows_flatten)
+        else:
+            ref_window_img = image
+
+        heat_image = heat_image.astype(np.float64) / np.amax(heat_image)
+        heat_image = 255 * heat_image  # Now scale by 255
+        heat_image_3D = np.dstack((heat_image, heat_image, heat_image)).astype("uint8")
+        temp = vconcat_resize_min([image, ref_window_img, heat_image_3D])
+        draw_img = hconcat_resize_min([draw_img, temp])
+
+    return draw_img
+
+# Defining a pipeline for Video Frame Processing
+# The last 15 frames is kept
+def vehicle_detect_label(image):
     rand = random.randint(0, 1)
     if (rand < 0.4):
         refinedWindows = keepTrack.refinedWindows[:-1]
@@ -261,15 +301,13 @@ def vehicle_detect(image):
             keepTrack.AddWindows(refinedWindows)
 
     heat = np.zeros_like(image[:, :, 0]).astype(np.float)
-
     for refinedWindow in keepTrack.refinedWindows:
         heat = add_heat(heat, refinedWindow)
 
-    heatmap = apply_threshold(heat, 21 + len(keepTrack.refinedWindows) // 2)
+    heat_image = apply_threshold(heat, 21 + len(keepTrack.refinedWindows) // 2)
+    labels = label(heat_image)
 
-    labels = label(heatmap)
-    draw_img = draw_labeled_bboxes(np.copy(image), labels)
-    return draw_img
+    return labels
 
 
 debug = 0

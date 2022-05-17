@@ -1,4 +1,3 @@
-import sys
 import cv2
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -7,13 +6,13 @@ from moviepy.editor import VideoFileClip
 
 #################################################################################
 #################################################################################
-video_output =  './output_videos/Test_project_video_debug.mp4' #sys.argv[1]
+video_output =  './output_videos/VD_project_video_v1_debug.mp4' #sys.argv[1]
 input_path   =  './test_videos/project_video.mp4' #sys.argv[2]
 debug        =  1 #int(sys.argv[3])
 image_name   = 'test1'
-test_image   = False
+test_image   =  False
 test_video   = True
-LD_VD        = 'LD'
+LD_VD        = 'VD'
 #################################################################################
 #################################################################################
 
@@ -31,8 +30,8 @@ if LD_VD == 'LD':
         plt.show()
 
     if test_video:
-        clip1 = VideoFileClip(input_path)
-        final_clip = clip1.fl_image(lane_detect)
+        clip = VideoFileClip(input_path)
+        final_clip = clip.fl_image(lane_detect)
         final_clip.write_videofile(video_output, audio=False)
 
 if LD_VD == 'VD':
@@ -63,10 +62,36 @@ if LD_VD == 'VD':
         plt.show()
 
     if test_video:
-        processed_video = input_path.fl_image(vehicle_detect)
-        processed_video.write_videofile(video_output, audio=False)
-        input_path.reader.close()
-        input_path.audio.reader.close_proc()
+        clip = VideoFileClip(input_path) #.subclip(40,44)
+        final_clip = clip.fl_image(vehicle_detect)
+        final_clip.write_videofile(video_output, audio=False)
+        clip.reader.close()
+        clip.audio.reader.close_proc()
+
+
+def Lane_Vehicle_Detection(image):
+    Lane_result = lane_detect(image)
+    Vehicle_labels = vehicle_detect_label(image)
+    draw_img = draw_labeled_bboxes(Lane_result, Vehicle_labels)
+    return draw_img
+
+if LD_VD == 'LD-VD':
+    from Lane_Detection import passDebugToLD, lane_detect
+    from Vehicle_Detection import passDebugToVD, vehicle_detect_label, draw_labeled_bboxes
+    debug = 0
+    passDebugToLD(debug)
+    passDebugToVD(debug)
+
+    clip = VideoFileClip(input_path) #.subclip(40,44)
+    final_clip = clip.fl_image(Lane_Vehicle_Detection)
+    final_clip.write_videofile(video_output, audio=False)
+    clip.reader.close()
+    clip.audio.reader.close_proc()
+
+
+
+
+
 
 
 

@@ -2,8 +2,7 @@ import cv2
 import numpy as np
 import pickle
 from collections import deque
-from Common_Func import vconcat_resize_min, hconcat_resize_min, concat_tile_resize
-
+from Common_Func import vconcat_resize_min, concat_tile_resize
 
 
 # Define a class to receive the characteristics of each line detection
