@@ -1,3 +1,4 @@
+import sys
 import cv2
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -6,13 +7,13 @@ from moviepy.editor import VideoFileClip
 
 #################################################################################
 #################################################################################
-video_output =  './output_videos/VD_project_video_v1_debug.mp4' #sys.argv[1]
-input_path   =  './test_videos/project_video.mp4' #sys.argv[2]
-debug        =  1 #int(sys.argv[3])
+video_output = sys.argv[1]          # './output_videos/LD-VD_project_video_v1.mp4' #
+input_path   = sys.argv[2]          # './test_videos/project_video.mp4' #
+LD_VD        = sys.argv[3]          # 'LD-VD' #
+debug        = int(sys.argv[4])     # 0 #
 image_name   = 'test1'
-test_image   =  False
+test_image   = False
 test_video   = True
-LD_VD        = 'VD'
 #################################################################################
 #################################################################################
 

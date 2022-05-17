@@ -291,8 +291,9 @@ def vehicle_detect(image):
 
 # Defining a pipeline for Video Frame Processing
 # The last 15 frames is kept
+random.seed(12345)
 def vehicle_detect_label(image):
-    rand = random.randint(0, 1)
+    rand = random.uniform(0.0, 1.0)
     if (rand < 0.4):
         refinedWindows = keepTrack.refinedWindows[:-1]
     else:
