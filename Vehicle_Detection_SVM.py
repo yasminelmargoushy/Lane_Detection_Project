@@ -201,7 +201,7 @@ def apply_threshold(heatmap, threshold):
 
 
 # find pixels with each car number and draw the final bounding boxes
-def draw_labeled_bboxes(img, labels):
+def draw_labeled_bboxes_SVM(img, labels):
     # Iterate through all detected cars
     for car_number in range(1, labels[1]+1):
         # Find pixels with each car_number label value
@@ -231,7 +231,7 @@ def vehicle_detect_image(image):
     heat_image = apply_threshold(heat, 2)
 
     labels = label(heat_image)
-    draw_img = draw_labeled_bboxes(np.copy(image), labels)
+    draw_img = draw_labeled_bboxes_SVM(np.copy(image), labels)
 
     if debug == 1:
         heat_image = heat_image.astype(np.float64) / np.amax(heat_image)
@@ -254,13 +254,13 @@ class KeepTrack():
         if len(self.refinedWindows) > frameHistory:
             self.refinedWindows = self.refinedWindows[len(self.refinedWindows) - frameHistory:]
 
+Frame_Flag = True
 
 # Defining a pipeline for Video Frame Processing
 # The last 15 frames is kept
-random.seed(12345)
 def vehicle_detect(image):
-    rand = random.uniform(0.0, 1.0)
-    if (rand < 0.4):
+    global Frame_Flag
+    if (Frame_Flag):
         refinedWindows = keepTrack.refinedWindows[:-1]
     else:
         refinedWindows = DrawCars(image, windows)
@@ -273,7 +273,7 @@ def vehicle_detect(image):
 
     heat_image = apply_threshold(heat, 21 + len(keepTrack.refinedWindows) // 2)
     labels = label(heat_image)
-    draw_img = draw_labeled_bboxes(np.copy(image), labels)
+    draw_img = draw_labeled_bboxes_SVM(np.copy(image), labels)
     if debug == 1:
         if len(keepTrack.refinedWindows) > 1 and type(keepTrack.refinedWindows[0]) == list:
             refinedWindows_flatten = list(chain.from_iterable(keepTrack.refinedWindows))
@@ -287,14 +287,15 @@ def vehicle_detect(image):
         temp = vconcat_resize_min([image, ref_window_img, heat_image_3D])
         draw_img = hconcat_resize_min([draw_img, temp])
 
+    Frame_Flag = not Frame_Flag
     return draw_img
 
 # Defining a pipeline for Video Frame Processing
 # The last 15 frames is kept
-random.seed(12345)
+
 def vehicle_detect_label(image):
-    rand = random.uniform(0.0, 1.0)
-    if (rand < 0.4):
+    global  Frame_Flag
+    if (Frame_Flag):
         refinedWindows = keepTrack.refinedWindows[:-1]
     else:
         refinedWindows = DrawCars(image, windows)
@@ -307,7 +308,7 @@ def vehicle_detect_label(image):
 
     heat_image = apply_threshold(heat, 21 + len(keepTrack.refinedWindows) // 2)
     labels = label(heat_image)
-
+    Frame_Flag = not Frame_Flag
     return labels
 
 

@@ -1,6 +1,6 @@
-OUTPUT=./output_videos/challenge_video_out.mp4
-INPUT=./test_videos/challenge_video.mp4
+OUTPUT=./output_videos/Test_SH.mp4
+INPUT=./test_videos/project_video.mp4
 DEBUG=0
-Result=LD-VD
+Result=LD_VDS_SVM
 
 python main.py $OUTPUT $INPUT $Result $DEBUG
