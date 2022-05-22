@@ -74,3 +74,15 @@
     (9)   In main.py, Edit the "image_name" variable to the name of your test image.
     (10)  Add configuration to run main.py file.
     (11)  Run main.py file.
+# Vehicle_Detection_Project
+## (1) SVM Approach
+### Pipeline
+    (1) Perform a Histogram of Oriented Gradients (HOG) feature extraction on a labeled training set of images and train a classifier Linear SVM classifier
+    (2)  Normalize your features and randomize a selection for training and testing.
+    (3)  Implement a sliding-window technique and use SVM classifier to search for vehicles in images.
+    (4)  Run pipeline on a video stream and create a heat map of recurring detections frame by frame to reject outliers and follow detected vehicles.
+    (5)  Estimate a bounding box for detected vehicles.
+## (2) YOLO Approach
+    (1) resize input image to 448x448.
+    (2) run a single convolutional network on the image.
+    (3) threshold the resulting detections by the model’s confidence.
