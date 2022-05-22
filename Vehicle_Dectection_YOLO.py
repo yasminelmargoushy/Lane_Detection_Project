@@ -4,6 +4,7 @@ tf.disable_v2_behavior()
 import numpy as np
 import cv2
 
+
 class yolo_tf:
     w_img = 1280
     h_img = 720
@@ -160,6 +161,7 @@ def interpret_output(yolo,output):
 
     return result
 
+
 def draw_thumbnails(img_cp, img, window_list, thumb_w=100, thumb_h=80, off_x=30, off_y=160):
 
     cv2.putText(img_cp, 'Detected viehicles', (60, 160), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), thickness=2)
@@ -190,6 +192,7 @@ def draw_results(img, yolo):
 
     return img_cp
 
+
 def iou(box1,box2):
     tb = min(box1[0]+0.5*box1[2],box2[0]+0.5*box2[2])-max(box1[0]-0.5*box1[2],box2[0]-0.5*box2[2])
     lr = min(box1[1]+0.5*box1[3],box2[1]+0.5*box2[3])-max(box1[1]-0.5*box1[3],box2[1]-0.5*box2[3])
@@ -198,8 +201,8 @@ def iou(box1,box2):
     return intersection / (box1[2]*box1[3] + box2[2]*box2[3] - intersection)
 
 
-
 yolo = yolo_tf()
+
 
 def vehicle_detection_yolo(image):
     detect_from_cvmat(yolo, image)

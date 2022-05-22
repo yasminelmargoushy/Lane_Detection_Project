@@ -107,7 +107,7 @@ if LD_VD == 'LD-VD(YOLO)':
     debug = 0
     passDebugToLD(debug)
 
-    clip = VideoFileClip(input_path) .subclip(40,44)
+    clip = VideoFileClip(input_path)# .subclip(40,44)
     final_clip = clip.fl_image(Lane_Vehicle_Detection_YOLO)
     final_clip.write_videofile(video_output, audio=False)
     clip.reader.close()
